@@ -1,18 +1,7 @@
-/**
- * NOTE: THIS CODE STILL NEEDS A LOT OF WORK.
- *
- * I am submitting it at this state to show a proof of concept.
- *
- * Current assets were gathered from here https://github.com/ibid-11962/Windows-95-3D-Maze-Screensaver
- *
- * I hope to make my own with html canvas to better reflect the message i'd like convey.
- *
- * This is just to show that generating the maze with three.js is possible. My next steps are animation with the camera.
- *
- */
+// Reference https://www.youtube.com/watch?v=7-yMd9Kt4mQ
 
 // main constants
-const sizeMultiplier = 40;
+const sizeMultiplier = 40; // used so we can consider things in terms of the width and height and just use a const to scale up
 const mazeWidth = 10;
 const mazeHeight = 10;
 const zOffset = sizeMultiplier / 2;
@@ -30,29 +19,30 @@ let endPosition;
 let endReached = false;
 
 function init() {
-  maze = generateMazeData(mazeWidth, mazeHeight);
   scene = new THREE.Scene();
   let width = window.innerWidth;
   let height = window.innerHeight;
 
-  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 25000); // FOV, aspect ration, near, far
-  camera.position.set(0, sizeMultiplier / 4, 200); // x, y (move up), back out on the z-axis
+  camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 25000); // FOV, aspect ration, near, far
+  // camera.position.set(0, sizeMultiplier / 4, 200); // x, y (move up), back out on the z-axis
   // camera.lookAt(width / 2, height / 2, sizeMultiplier / 4);
   scene.add(camera); // add camera to scene
-
-  renderMaze(maze);
 
   renderer = new THREE.WebGLRenderer({ alpha: 1, antialias: true });
   renderer.setSize(width, height);
 
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  // controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   document.body.appendChild(renderer.domElement);
   renderer.render(scene, camera);
+
+  main();
 }
 
 async function main() {
   maze = generateMazeData(mazeWidth, mazeHeight);
+  renderMaze(maze);
+  initializeTraversal();
 }
 
 function renderMaze({ horizontalPlanes, verticalPlanes }) {
@@ -61,6 +51,99 @@ function renderMaze({ horizontalPlanes, verticalPlanes }) {
   renderVertical(verticalPlanes);
 }
 
+function initializeTraversal() {
+  let pos;
+  let posArr = [];
+  let y = sizeMultiplier / 4;
+
+  for (let x = 0; x < mazeWidth; x++) {
+    for (let z = 0; z < mazeHeight; z++) {
+      posArr.push({ x, z });
+    }
+  }
+
+  // make list of positions and shuffle them.
+  posArr = _.shuffle(posArr);
+
+  // get a position from the array and remove it
+  pos = posArr.pop();
+  let x = pos.x,
+    z = pos.z + 0.5; // 0.5 is zOffset without the multiplier
+  camera.position.set(
+    x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+    y,
+    z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+  );
+  console.log(camera.position, pos);
+
+  pos = _.sample(getPossibleAdjacentSpots(maze, visited, { x, y, z }));
+  _.remove(posArr, (p) => p.x === pos.x && p.z === pos.z - 0.5);
+
+  let startImg = new THREE.TextureLoader().load(
+    "assets/start-button.jpg",
+    (tx) => {
+      let startGeometry = new THREE.PlaneGeometry(
+        0.6 * sizeMultiplier,
+        0.2 * sizeMultiplier
+      );
+      let startMaterial = new THREE.MeshBasicMaterial({
+        map: startImg,
+        side: THREE.DoubleSide,
+      });
+      let startBtn = new THREE.Mesh(startGeometry, startMaterial);
+      scene.add(startBtn);
+      startBtn.position.set(
+        pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+        sizeMultiplier / 4,
+        pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+      );
+      startBtn.lookAt(camera.position);
+      startMaterial.transparent = true;
+      startMaterial.opacity = 0.5;
+    }
+  );
+
+  // FOR TESTING
+  var geometry = new THREE.SphereGeometry(sizeMultiplier / 16, 32, 32);
+  var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  var sphere = new THREE.Mesh(geometry, material);
+  sphere.position.set(
+    pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+    0,
+    pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+  );
+  scene.add(sphere);
+  // FOR TESTING
+
+  camera.lookAt(
+    pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+    sizeMultiplier / 4,
+    pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+  );
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  TWEEN.update();
+
+  renderer.render(scene, camera);
+  // controls.update();
+}
+
+function windowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.addEventListener("load", () => {
+  init();
+  animate();
+});
+window.addEventListener("resize", windowResize);
+
+// Maze Render Helpers
 function renderFloorAndCeiling() {
   let floorTexture = new THREE.TextureLoader().load("assets/floor.bmp");
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
@@ -98,7 +181,7 @@ function renderFloorAndCeiling() {
   ceiling.rotation.x = Math.PI / 2; // rotate to lay flat
   ceiling.doubleSided = true;
   ceiling.position.y = sizeMultiplier / 2;
-  // scene.add(ceiling);
+  scene.add(ceiling);
 }
 
 function renderHorizontal(hPlanes) {
@@ -170,22 +253,68 @@ function getCameraPos() {
   };
 }
 
-function animate() {
-  requestAnimationFrame(animate);
+function getCameraRot(newPos) {
+  let currPos = getCameraPos();
+  let diff = {
+    x: currPos.x - newPos.x,
+    y: currPos.z - newPos.z,
+  };
 
-  renderer.render(scene, camera);
-  controls.update();
+  if (diff.z === -1) {
+    return Math.PI;
+  } else if (diff.z === 1) {
+    return 0;
+  } else if (diff.x === -1) {
+    return -Math.PI / 2;
+  } else if (diff.x === 1) {
+    return Math.PI / 2;
+  }
 }
 
-function windowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+// Helper for traversing the maze. May need work.
+function getPossibleAdjacentSpots(maze, visited, currPos) {
+  let result = [];
+  let movementOptions = [
+    { x: -1, z: 0 }, // left
+    { x: 1, z: 0 }, // right
+    { x: 0, z: -1 }, // backwards
+    { x: 0, z: 1 }, // forwards
+  ];
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  movementOptions.forEach(({ x, z }) => {
+    let p = {
+      x: Math.round(currPos.x) + x,
+      y: currPos.y,
+      z: Math.floor(currPos.z) + 0.5 + z,
+    };
+
+    let unvisited = false;
+    // if within bounds of maze
+    if (0 <= p.x && p.x < maze.width && 0 <= p.z && p.z < maze.height) {
+      unvisited = !visited[Math.floor(p.z)][p.x];
+    }
+
+    // is path blocked by wall
+    let notBlocked = true;
+    if (x !== 0) {
+      notBlocked = !maze.verticalPlanes[p.z - 0.5][x === -1 ? p.x + 1 : p.x];
+    } else if (z !== 0) {
+      notBlocked = !maze.horizontalPlanes[z === -1 ? p.z + 0.5 : p.z - 0.5][
+        p.x
+      ];
+    }
+
+    if (
+      0 <= p.x &&
+      p.x < maze.width &&
+      0 <= p.z &&
+      p.z < maze.height &&
+      unvisited &&
+      notBlocked
+    ) {
+      result.push(p);
+    }
+  });
+
+  return result;
 }
-
-window.addEventListener("load", () => {
-  init();
-  animate();
-});
-window.addEventListener("resize", windowResize);
