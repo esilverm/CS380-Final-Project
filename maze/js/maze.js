@@ -42,7 +42,11 @@ function init() {
 async function main() {
   maze = generateMazeData(mazeWidth, mazeHeight);
   renderMaze(maze);
-  initializeTraversal();
+  await initializeTraversal();
+  while (!endReached) {
+    traverseMaze(maze);
+    endReached = true;
+  }
 }
 
 function renderMaze({ horizontalPlanes, verticalPlanes }) {
@@ -79,7 +83,7 @@ async function initializeTraversal() {
   pos = _.sample(getPossibleAdjacentSpots(maze, visited, { x, y, z }));
   _.remove(posArr, (p) => p.x === pos.x && p.z === pos.z - 0.5);
 
-  let startImg = await new THREE.TextureLoader().load(
+  let startImg = new THREE.TextureLoader().load(
     "assets/start-button.jpg",
     (tx) => {
       let startGeometry = new THREE.PlaneGeometry(
@@ -148,8 +152,19 @@ async function initializeTraversal() {
       endBtn.lookAt(camera.position);
       endMaterial.transparent = true;
       endMaterial.opacity = 0.5;
+      endPosition = { x, y, z };
     }
   );
+}
+
+async function traverseMaze(maze) {
+  let camPos = getCameraPos();
+  let possiblePos = getPossibleAdjacentSpots(maze, visited, camPos);
+  pathHistoryArr.push({ ...camPos });
+  visited[camPos.z][camPos.x] = 1;
+
+  // if we hit the goal
+  console.log(camPos);
 }
 
 function animate() {
@@ -277,9 +292,13 @@ function renderVertical(vPlanes) {
 function getCameraPos() {
   let position = camera.position;
   return {
-    x: Math.round(position.x),
-    y: position.y,
-    z: Math.floor(position.z) + zOffset,
+    x: Math.round(
+      (position.x - zOffset + (sizeMultiplier * mazeWidth) / 2) / sizeMultiplier
+    ),
+    y: sizeMultiplier / 4,
+    z: Math.floor(
+      (position.z + (sizeMultiplier * mazeHeight) / 2) / sizeMultiplier
+    ),
   };
 }
 
