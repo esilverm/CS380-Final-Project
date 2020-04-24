@@ -51,7 +51,7 @@ function renderMaze({ horizontalPlanes, verticalPlanes }) {
   renderVertical(verticalPlanes);
 }
 
-function initializeTraversal() {
+async function initializeTraversal() {
   let pos;
   let posArr = [];
   let y = sizeMultiplier / 4;
@@ -79,7 +79,7 @@ function initializeTraversal() {
   pos = _.sample(getPossibleAdjacentSpots(maze, visited, { x, y, z }));
   _.remove(posArr, (p) => p.x === pos.x && p.z === pos.z - 0.5);
 
-  let startImg = new THREE.TextureLoader().load(
+  let startImg = await new THREE.TextureLoader().load(
     "assets/start-button.jpg",
     (tx) => {
       let startGeometry = new THREE.PlaneGeometry(
@@ -87,7 +87,7 @@ function initializeTraversal() {
         0.2 * sizeMultiplier
       );
       let startMaterial = new THREE.MeshBasicMaterial({
-        map: startImg,
+        map: tx,
         side: THREE.DoubleSide,
       });
       let startBtn = new THREE.Mesh(startGeometry, startMaterial);
@@ -100,6 +100,10 @@ function initializeTraversal() {
       startBtn.lookAt(camera.position);
       startMaterial.transparent = true;
       startMaterial.opacity = 0.5;
+
+      return new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
     }
   );
 
@@ -119,6 +123,32 @@ function initializeTraversal() {
     pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
     sizeMultiplier / 4,
     pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+  );
+
+  // Goal
+
+  let endImg = await new THREE.TextureLoader().load(
+    "assets/smiley.png",
+    (tx) => {
+      pos = posArr.pop();
+      x = pos.x;
+      z = pos.z + 0.5;
+      let endGeometry = new THREE.CircleGeometry(0.2 * sizeMultiplier, 50);
+      let endMaterial = new THREE.MeshBasicMaterial({
+        map: tx,
+        side: THREE.DoubleSide,
+      });
+      let endBtn = new THREE.Mesh(endGeometry, endMaterial);
+      scene.add(endBtn);
+      endBtn.position.set(
+        pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+        sizeMultiplier / 4,
+        pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+      );
+      endBtn.lookAt(camera.position);
+      endMaterial.transparent = true;
+      endMaterial.opacity = 0.5;
+    }
   );
 }
 
