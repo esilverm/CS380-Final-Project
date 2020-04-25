@@ -1,9 +1,10 @@
 // Reference https://www.youtube.com/watch?v=7-yMd9Kt4mQ
+// TODO: FIX POSITIONING OF THINGS
 
 // main constants
 const sizeMultiplier = 40; // used so we can consider things in terms of the width and height and just use a const to scale up
-const mazeWidth = 10;
-const mazeHeight = 10;
+const mazeWidth = 5;
+const mazeHeight = 5;
 const zOffset = sizeMultiplier / 2;
 
 // three.js variables
@@ -31,7 +32,7 @@ function init() {
   renderer = new THREE.WebGLRenderer({ alpha: 1, antialias: true });
   renderer.setSize(width, height);
 
-  // controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   document.body.appendChild(renderer.domElement);
   renderer.render(scene, camera);
@@ -43,10 +44,11 @@ async function main() {
   maze = generateMazeData(mazeWidth, mazeHeight);
   renderMaze(maze);
   await initializeTraversal();
-  while (!endReached) {
-    traverseMaze(maze);
-    endReached = true;
-  }
+  console.log(endPosition);
+  // while (!endReached) {
+  //   traverseMaze(maze);
+  //   endReached = true;
+  // }
 }
 
 function renderMaze({ horizontalPlanes, verticalPlanes }) {
@@ -71,90 +73,83 @@ async function initializeTraversal() {
 
   // get a position from the array and remove it
   pos = posArr.pop();
-  let x = pos.x,
-    z = pos.z + 0.5; // 0.5 is zOffset without the multiplier
-  camera.position.set(
-    x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
-    y,
-    z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
-  );
-  console.log(camera.position, pos);
 
-  pos = _.sample(getPossibleAdjacentSpots(maze, visited, { x, y, z }));
+  camera.position.set(...Object.values(coordsToPosition(pos)));
+  // FOR TESTING
+  var geometry = new THREE.SphereGeometry(sizeMultiplier / 16, 32, 32);
+  var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  var sphere = new THREE.Mesh(geometry, material);
+  sphere.position.set(
+    Object.values(coordsToPosition({ x: pos.x, z: pos.z }))[0],
+    0,
+    Object.values(coordsToPosition({ x: pos.x, z: pos.z }))[2]
+  );
+  scene.add(sphere);
+  // FOR TESTING
+  console.log(getCameraPos(), pos, coordsToPosition(pos), camera.position);
+
+  pos = _.sample(
+    getPossibleAdjacentSpots(maze, visited, {
+      x: pos.x,
+      y: sizeMultiplier / 4,
+      z: pos.z,
+    })
+  );
   _.remove(posArr, (p) => p.x === pos.x && p.z === pos.z - 0.5);
 
-  let startImg = new THREE.TextureLoader().load(
-    "assets/start-button.jpg",
-    (tx) => {
-      let startGeometry = new THREE.PlaneGeometry(
-        0.6 * sizeMultiplier,
-        0.2 * sizeMultiplier
-      );
-      let startMaterial = new THREE.MeshBasicMaterial({
-        map: tx,
-        side: THREE.DoubleSide,
-      });
-      let startBtn = new THREE.Mesh(startGeometry, startMaterial);
-      scene.add(startBtn);
-      startBtn.position.set(
-        pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
-        sizeMultiplier / 4,
-        pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
-      );
-      startBtn.lookAt(camera.position);
-      startMaterial.transparent = true;
-      startMaterial.opacity = 0.5;
-
-      return new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
-    }
-  );
+  await loadTexture("assets/start-button.jpg").then((texture) => {
+    let startGeometry = new THREE.PlaneGeometry(
+      0.6 * sizeMultiplier,
+      0.2 * sizeMultiplier
+    );
+    let startMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+    });
+    let startBtn = new THREE.Mesh(startGeometry, startMaterial);
+    scene.add(startBtn);
+    startBtn.position.set(
+      ...Object.values(coordsToPosition({ x: pos.x, z: pos.z - 0.5 }))
+    );
+    startBtn.lookAt(camera.position);
+    startMaterial.transparent = true;
+    startMaterial.opacity = 0.5;
+  });
 
   // FOR TESTING
   var geometry = new THREE.SphereGeometry(sizeMultiplier / 16, 32, 32);
   var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
   var sphere = new THREE.Mesh(geometry, material);
   sphere.position.set(
-    pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+    Object.values(coordsToPosition({ x: pos.x, z: pos.z - 0.5 }))[0],
     0,
-    pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    Object.values(coordsToPosition({ x: pos.x, z: pos.z - 0.5 }))[2]
   );
   scene.add(sphere);
   // FOR TESTING
 
   camera.lookAt(
-    pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
-    sizeMultiplier / 4,
-    pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    ...Object.values(coordsToPosition({ x: pos.x, z: pos.z - 0.5 }))
   );
 
   // Goal
-
-  let endImg = await new THREE.TextureLoader().load(
-    "assets/smiley.png",
-    (tx) => {
-      pos = posArr.pop();
-      x = pos.x;
-      z = pos.z + 0.5;
-      let endGeometry = new THREE.CircleGeometry(0.2 * sizeMultiplier, 50);
-      let endMaterial = new THREE.MeshBasicMaterial({
-        map: tx,
-        side: THREE.DoubleSide,
-      });
-      let endBtn = new THREE.Mesh(endGeometry, endMaterial);
-      scene.add(endBtn);
-      endBtn.position.set(
-        pos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
-        sizeMultiplier / 4,
-        pos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
-      );
-      endBtn.lookAt(camera.position);
-      endMaterial.transparent = true;
-      endMaterial.opacity = 0.5;
-      endPosition = { x, y, z };
-    }
-  );
+  pos = posArr.pop();
+  await loadTexture("assets/smiley.png").then((texture) => {
+    let endGeometry = new THREE.CircleGeometry(0.2 * sizeMultiplier, 50);
+    let endMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+    });
+    let endBtn = new THREE.Mesh(endGeometry, endMaterial);
+    scene.add(endBtn);
+    endBtn.position.set(
+      ...Object.values(coordsToPosition({ x: pos.x, z: pos.z }))
+    );
+    endBtn.lookAt(camera.position);
+    endMaterial.transparent = true;
+    endMaterial.opacity = 0.5;
+  });
+  endPosition = { x: pos.x, y: sizeMultiplier / 4, z: pos.z };
 }
 
 async function traverseMaze(maze) {
@@ -162,9 +157,54 @@ async function traverseMaze(maze) {
   let possiblePos = getPossibleAdjacentSpots(maze, visited, camPos);
   pathHistoryArr.push({ ...camPos });
   visited[camPos.z][camPos.x] = 1;
+  console.log(camPos);
 
   // if we hit the goal
-  console.log(camPos);
+  // if (
+  //   Math.floor(camPos.x) === endPosition.x &&
+  //   Math.floor(camPos.z) === endPosition.z
+  // ) {
+  //   endReached === true;
+  //   return;
+  // }
+
+  if (possiblePos.length === 0) {
+    // if nowhere to go, go backwards
+    pathHistoryArr.pop();
+    let previousPos = pathHistoryArr.pop();
+    let newRot = getCameraRot(previousPos);
+    // animate to last position
+
+    camera.lookAt(
+      previousPos.x * sizeMultiplier -
+        (sizeMultiplier * mazeHeight) / 2 +
+        zOffset,
+      sizeMultiplier / 4,
+      previousPos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    );
+    camera.position.set(
+      previousPos.x * sizeMultiplier -
+        (sizeMultiplier * mazeHeight) / 2 +
+        zOffset,
+      sizeMultiplier / 4,
+      previousPos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    );
+  } else {
+    // choose a random position
+    let newPos = _.sample(possiblePos);
+    let newRot = getCameraRot(newPos);
+    // animate to next Pos
+    camera.lookAt(
+      newPos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+      sizeMultiplier / 4,
+      newPos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    );
+    camera.position.set(
+      newPos.x * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2 + zOffset,
+      sizeMultiplier / 4,
+      newPos.z * sizeMultiplier - (sizeMultiplier * mazeHeight) / 2
+    );
+  }
 }
 
 function animate() {
@@ -172,7 +212,7 @@ function animate() {
   TWEEN.update();
 
   renderer.render(scene, camera);
-  // controls.update();
+  controls.update();
 }
 
 function windowResize() {
@@ -226,7 +266,7 @@ function renderFloorAndCeiling() {
   ceiling.rotation.x = Math.PI / 2; // rotate to lay flat
   ceiling.doubleSided = true;
   ceiling.position.y = sizeMultiplier / 2;
-  scene.add(ceiling);
+  // scene.add(ceiling);
 }
 
 function renderHorizontal(hPlanes) {
@@ -302,6 +342,14 @@ function getCameraPos() {
   };
 }
 
+function coordsToPosition({ x, z }) {
+  return {
+    x: x * sizeMultiplier + zOffset - (sizeMultiplier * mazeWidth) / 2,
+    y: sizeMultiplier / 4,
+    z: z * sizeMultiplier + zOffset - (sizeMultiplier * mazeHeight) / 2,
+  };
+}
+
 function getCameraRot(newPos) {
   let currPos = getCameraPos();
   let diff = {
@@ -366,4 +414,11 @@ function getPossibleAdjacentSpots(maze, visited, currPos) {
   });
 
   return result;
+}
+
+// Async Texture loading with promises
+function loadTexture(url) {
+  return new Promise((resolve) => {
+    new THREE.TextureLoader().load(url, resolve);
+  });
 }
