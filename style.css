@@ -1,0 +1,106 @@
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: url("./assets/stars.png");
+  text-align: center;
+}
+
+header h1 {
+  display: inline-block;
+  width: max-content;
+  height: auto;
+  font-family: "Comic Sans MS", fantasy;
+  background-color: rgb(150, 28, 28);
+  padding: 20px 40px;
+  color: white;
+  margin-top: 3%;
+}
+
+header p {
+  display: inline-block;
+  width: 60%;
+  height: auto;
+  font-family: "Comic Sans MS", fantasy;
+  background-color: rgb(150, 28, 28);
+  padding: 20px 40px;
+  color: white;
+  margin-top: 40px;
+}
+
+.blinking {
+  animation: blink 1s step-end infinite;
+  opacity: 1;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.spinny {
+  position: absolute;
+}
+
+.spinny:nth-child(1) {
+  top: 5%;
+  left: 10%;
+}
+
+.spinny:nth-child(2) {
+  top: 5%;
+  right: 10%;
+}
+
+#container {
+  width: 90%;
+  height: 70vh;
+  min-height: 600px;
+  margin: 20px auto 0 auto;
+  background-color: #0a81fb;
+  padding: 40px;
+}
+
+#image-display {
+  border: 1px solid black;
+  width: 50%;
+  height: 450px;
+  margin: auto;
+  background-size: cover;
+  background-position: center;
+  background-image: url("assets/maze.png");
+}
+
+#links {
+  width: 70%;
+  height: 70px;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  margin: 40px auto 0 auto;
+}
+
+#links a {
+  display: inline-block;
+  width: 250px;
+  height: 70px;
+  border: 1px solid black;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  font-size: 1.5rem;
+  outline: 2px ridge black;
+  background-color: black;
+}
