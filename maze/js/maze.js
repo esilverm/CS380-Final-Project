@@ -100,7 +100,7 @@ async function initializeTraversal() {
   );
   _.remove(posArr, (p) => p.x === pos.x && p.z === pos.z - 0.5);
 
-  startbtn = await loadTexture("assets/start-button.jpg").then((texture) => {
+  startbtn = await loadTexture("assets/rat.png").then((texture) => {
     let startGeometry = new THREE.PlaneGeometry(
       0.6 * sizeMultiplier,
       0.2 * sizeMultiplier
@@ -116,7 +116,7 @@ async function initializeTraversal() {
     );
     startBtn.lookAt(camera.position);
     startMaterial.transparent = true;
-    startMaterial.opacity = 0.5;
+    // startMaterial.opacity = 0.5;
     return startBtn;
   });
 

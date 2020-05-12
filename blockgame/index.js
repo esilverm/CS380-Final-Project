@@ -31,21 +31,32 @@ function draw(e) {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(mousePos.x - 150, height * 0.9, 300, 30);
+  ctx.beginPath();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.ellipse(mousePos.x, height * 0.9 - 20, 20, 20, 0, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.closePath();
   time++;
-  if (time % 20 === 0) brickRows++;
+
+  if (time % 50 === 0) brickRows++;
   ctx.strokeStyle = "#FFFFFF";
   ctx.lineWidth = 3;
   for (let i = 0; i < brickRows; i++) {
+    ctx.beginPath();
     ctx.fillStyle = ["#FB0207", "#FEFF0B", "#0F7101", "#1500FF"][i % 4];
     for (let j = 0; j < width; j += brickWidth + 40) {
       ctx.rect(j + 20, i * 60 + 40, brickWidth, 40);
     }
     ctx.stroke();
     ctx.fill();
+    ctx.closePath();
   }
+  ctx.fillStyle = "#FFFFFF";
 
-  if (brickRows === 6) {
-    brickRows = 0;
+  if (brickRows >= 15) {
+    ctx.font = "100px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("You Lose.", width / 2, height / 2);
   }
   requestAnimationFrame(draw);
 }

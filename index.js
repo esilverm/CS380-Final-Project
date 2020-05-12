@@ -1,7 +1,11 @@
 // get link elements
 const links = document.getElementById("links");
 const disp = document.getElementById("image-display");
-const imgurls = ["/assets/maze.png", "/assets/spinny-graph.gif", ""];
+const imgurls = [
+  "/assets/maze.png",
+  "/assets/blockgame.png",
+  "/assets/spinny-graph.gif",
+];
 
 links.addEventListener("mousemove", (e) => {
   const isChild = e.target !== links;
